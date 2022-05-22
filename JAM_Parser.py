@@ -171,11 +171,11 @@ if dnsport:
     print(table7)
 else: 
     pass
-  
+'''  
   columns = ["IP.src", "Count"]
 Master_table = PrettyTable()
 for ip, count in cnt.most_common():
     Master_table.add_column(columns[0], [ip])
     Master_table.add_column(columns[1], [count])
 print(Master_table)
-
+'''
