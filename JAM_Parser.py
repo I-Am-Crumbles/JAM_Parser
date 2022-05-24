@@ -5,11 +5,15 @@
 import sys
 import argparse
 import os
+import pyfiglet
 from scapy.all import *
 from collections import Counter
 from prettytable import PrettyTable
 import string
 
+#ASCII Artwork
+result = pyfiglet.figlet_format("JAM_Parser")
+print(result)
 
 # The main function that opens the pcap file, A print statetment also displays letting the user know what file they chose to work with.
 def parse_pcap(file_name):
