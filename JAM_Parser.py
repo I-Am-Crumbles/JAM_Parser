@@ -10,14 +10,16 @@ from scapy.all import *
 from collections import Counter
 from prettytable import PrettyTable
 import string
+import re
 
-#ASCII Artwork
+# ASCII Artwork. We imported pyfiglet to Create opening and error message ascii art.
 result = pyfiglet.figlet_format("JAM_Parser")
-print(result)
+errormsg = pyfiglet.figlet_format("YOU JUST GOT JAMMED!")
 
 # The main function that opens the pcap file, A print statetment also displays letting the user know what file they chose to work with.
 def parse_pcap(file_name):
-    print(f"Opening {file_name}")
+   print(result)
+   print(f"{file_name} is JAMEN...")
 
 # The following Block of code  defines the user input options  and provides help menu information
 
@@ -30,7 +32,19 @@ if __name__ == '__main__':
             help='Opens Packet Capture to be parsed', required = False)
     # This is the -IP flag and help information. It will output all of the Source and Destination IP addresses and their counts into a table. 
     parser.add_argument('-IP', action = 'store_true',
-            help='Displays a table of source and destination IP addresses', required = False)
+            help='Displays tables of source and destination IP addresses', required = False)
+    # This is the -TCP flag and help information. This will ouput all of the Source and Destination TCP traffic, what port it was on, and how many times it accessed that port
+    parser.add_argument('-TCP', action = 'store_true',
+            help='Displays Tables containing TCP source and destination ports and the number of times they were accessed', required = False)
+    #This is the -UDP flag and help information. This will output all of the Source and Destination UDP traffic, what port it was on, and how many times that port was used                                                                 
+    parser.add_argument('-UDP', action = 'store_true',                                                                                                                                                                                      
+            help="Displays tables containing TCP source and destination ports and the number of times they were accessed", required = False)                                                                                                
+    #This is the -DNS flag and help information. This will output all of the DNS traffic and the number of attempts that were made at that query                                                                                            
+    parser.add_argument('-DNS', action = 'store_true',                                                                                                                                                                                      
+            help='Displays a table of all DNS traffic and a count of how many attempts were made at the query', required = False)                                                                                                           
+    # This is the -ICMP flag and help information. This will output all of the ICMP traffics port numbers and number of times traffic was sent                                                                                              
+    parser.add_argument('-ICMP', action = 'store_true',                                                                                                                                                                                     
+            help='Displays tables containing ICMP traffic source and destination port numbers and number of times they were accessed', required = False)                                                                                    
     #Sets the arguments the user enters to a variable to be used later. Since the first argument position is the script and the last one is the pcap/ng file we are opening we are ignoring those positions.
     args = parser.parse_args(sys.argv[1:-1])
     # defines the parameter of the parse_pcap functions to be the last argument the user enters, which should be the file they wish to parse
@@ -38,6 +52,7 @@ if __name__ == '__main__':
     # if check to make sure that the file the user entered exists on the system.
     if not os.path.isfile(file_name):
         # if the file doesn't exist the script will output a print statement telling the user so
+        print(errormsg)
         print(f"{file_name} does not exist")
         #Causes to the script to exit in the event that the file input was not found.
         sys.exit(-1)
@@ -59,7 +74,11 @@ tcpdst =[]
 udpsrc =[]
 udpdst =[]
 dnsport =[]
+icmpsport =[]
+icmpdport = []
 smtpport =[]
+mac_add =[]
+mac_src =[]
 
 #This for loop will be utilized through out this section of code, although the variable names will be slightly different the idea is the same for each step. The first one here will itterate through each individual packet in the packets variable and pull out source IP addreses that get input into a list
 for pkt in packets:
@@ -166,22 +185,50 @@ table6 = PrettyTable(["UDP DST PORT", "Count"])
 for port, count in cnt6.most_common():
     table6.add_row([port, count])
 
-#The following two code blocks are intended to find and table DNS traffic however this feature does not currently work
-'''
 for pkt in packets:
-    if DNS in pkt:
+    if DNSQR in pkt:
         try:
-            dnsport.append(pkt[DNS].sport)
+            dnsport.append(pkt[DNSQR].qname)
         except:
             pass
 cnt7 = Counter()
-for port in dnsport:
-    cnt7[port] +=1
+for dns in dnsport:
+    cnt7[dns] += 1
 
 table7 = PrettyTable(["DNS TRAFFIC", "Count"])
-for port, count in cnt7.most_common():
-    table7.add_row([port, count])
-'''
+for dns, count in cnt7.most_common():
+    table7.add_row([dns, count])
+#print(table7)
+for pkt in packets:
+    if ICMP in pkt:
+        try: 
+            icmpsport.append(pkt[ICMP].sport)
+        except:
+            pass
+cnt8 = Counter()
+for port in icmpsport:
+    cnt8[port] +=1
+
+table8 = PrettyTable(["ICMP SRC PORT", "Count"])
+for port, count in cnt8.most_common():
+    table8.add_row([port, count])
+#print(table8)
+for pkt in packets:
+    if ICMP in pkt:
+        try: 
+            icmpdport.append(pkt[ICMP].dport)
+        except:
+            pass
+cnt9 = Counter()
+for port in icmpdport:
+    cnt9[port] +=1
+
+table9 = PrettyTable(["ICMP DST PORT", "Count"])
+for port, count in cnt9.most_common():
+    table9.add_row([port, count])
+#print(table9)
+
+
 # The following section of code will check the flags the user input and then print the corresponding tables if the lists associated with that table have any information in them.
 
 #if check to see if the -IP flag was input by the user and if it was we proceed to the next if check
@@ -197,32 +244,42 @@ if args.IP:
         print(table3)
     else:
         pass
-
-# partial print statements for tables that have yet to have a user input flag created for them. 
-'''
-if tcpsrc:
-    print(table2)
-else:
-    pass
-if tcpdst:
-    print(table4)
-else:
-    pass
-if udpsrc:
-    print(table5)
-else:
-    pass
-if udpdst:
-    print(table6)
-else:
-    pass
-
-#Table 7 "DNS Traffic" does not currently work
-if dnsport:
-    print(table7)
-else: 
-    pass
-'''
+# code block to print TCP traffic    
+if args.TCP:
+    if tcpsrc:
+        print(table2)
+    else:
+        pass
+    if tcpdst:
+        print(table4)
+    else:
+        pass
+# Code block to print UDP traffic    
+if args.UDP:
+    if udpsrc:
+        print(table5)
+    else:
+        pass
+    if udpdst:
+        print(table6)
+    else:
+        pass
+# code block to print ICMP traffic
+if args.ICMP:
+    if icmpsport:
+        print(table8)
+    else:
+        pass
+    if icmpdport:
+        print(table9)
+    else: 
+        pass
+# Code block to print DNS traffic    
+if args.DNS:
+    if dnsport:
+        print(table7)
+    else: 
+        pass
 
 # the following lines of code are a work in progress 
 
@@ -251,5 +308,4 @@ for c in string.ascii_uppercase:
 for dct in cnt.most_common:
     ip_dst_table.add_row([dct.get(c, "") for c in string.ascii_uppercase])
 print(ip_dst_table)
-'''    
-
+'''   
