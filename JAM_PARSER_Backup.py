@@ -7,6 +7,7 @@ import argparse
 import os
 import pyfiglet
 from scapy.all import *
+from scapy.layers.http import * 
 from collections import Counter
 from prettytable import PrettyTable
 import string
@@ -29,22 +30,27 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="PCAP reader that will automatically parse data and output into a table. ", add_help=True)
     # this line of code adds the -pcap flag, we set the action to "store_true" so that the script will remember the user input it and continue to search for other flags instead of ending when it finds one. *all of the following arguments will contain this "action". We won't require the user input any single flag so that is set to false. Help information is also entered on this line.
     parser.add_argument('-pcap','--pcap', action = 'store_true',
-            help='Opens Packet Capture to be parsed', required = False)
+            help='Opens Packet Capture to be parsed and displays useful packet information', required = False)
+    #This line of code adds the -all flag and help information. This will output all of the tables JAM parser created with one flag
+    parser.add_argument('-all', action = 'store_true',
+            help='Outputs all tabled information found by JAM Parser', required = False)
     # This is the -IP flag and help information. It will output all of the Source and Destination IP addresses and their counts into a table. 
     parser.add_argument('-IP', action = 'store_true',
-            help='Displays tables of source and destination IP addresses', required = False)
+            help='Displays tables of source and destination IP addresses and the number of packets containing them', required = False)
     # This is the -TCP flag and help information. This will ouput all of the Source and Destination TCP traffic, what port it was on, and how many times it accessed that port
-    parser.add_argument('-TCP', action = 'store_true',
-            help='Displays Tables containing TCP source and destination ports and the number of times they were accessed', required = False)
-    #This is the -UDP flag and help information. This will output all of the Source and Destination UDP traffic, what port it was on, and how many times that port was used                                                                 
-    parser.add_argument('-UDP', action = 'store_true',                                                                                                                                                                                      
-            help="Displays tables containing TCP source and destination ports and the number of times they were accessed", required = False)                                                                                                
-    #This is the -DNS flag and help information. This will output all of the DNS traffic and the number of attempts that were made at that query                                                                                            
-    parser.add_argument('-DNS', action = 'store_true',                                                                                                                                                                                      
-            help='Displays a table of all DNS traffic and a count of how many attempts were made at the query', required = False)                                                                                                           
-    # This is the -ICMP flag and help information. This will output all of the ICMP traffics port numbers and number of times traffic was sent                                                                                              
-    parser.add_argument('-ICMP', action = 'store_true',                                                                                                                                                                                     
-            help='Displays tables containing ICMP traffic source and destination port numbers and number of times they were accessed', required = False)                                                                                    
+    parser.add_argument('-TCP', action = 'store_true',       
+           help='Displays Tables containing TCP source and destination ports and the number of packets containing them', required = False)
+    #This is the -UDP flag and help information. This will output all of the Source and Destination UDP traffic, what port it was on, and how many times that port was used
+    parser.add_argument('-UDP', action = 'store_true',
+            help="Displays tables containing UDP source and destination ports and the number of packets containing them", required = False)
+    #This is the -DNS flag and help information. This will output all of the DNS traffic and the number of attempts that were made at that query
+    parser.add_argument('-DNS', action = 'store_true',
+            help='Displays a table of all DNS traffic and a count of how many attempts were made at the query', required = False)
+    # This is the -ICMP flag and help information. This will output all of the ICMP traffics port numbers and number of times traffic was sent
+    parser.add_argument('-ICMP', action = 'store_true',
+            help='Displays tables containing ICMP traffic source and destination port numbers and number of packets containing them', required = False)
+    parser.add_argument('-MAC', action = 'store_true',
+            help= "Displays tables containing Source and Destination MAC addresses and the number of packets containing them", required = False)
     #Sets the arguments the user enters to a variable to be used later. Since the first argument position is the script and the last one is the pcap/ng file we are opening we are ignoring those positions.
     args = parser.parse_args(sys.argv[1:-1])
     # defines the parameter of the parse_pcap functions to be the last argument the user enters, which should be the file they wish to parse
@@ -60,7 +66,12 @@ if __name__ == '__main__':
     # if check to see if the user input -the pcacp flag as an argument if they did it will open and parse through the pcap file and output interesting information **Interesting information check to be added
     if args.pcap:
         parse_pcap(file_name)
-
+        pktcnt = 0
+        for pkt in rdpcap(file_name):
+            pktcnt +=1
+           # print(pkt)
+        print('{} contains {} packets'.format(file_name, pktcnt))
+        
 
 # From this point on Using scapy the script will read through the pcap/ng file that the "file_name" variable above was set to and then attempt to iterate through each packet and store 5 tuple and other useful information into categorized lists that will also be put into a table using the PrettyTable library. User input will determine which tables print based on the flags they enter as arguments.
 
@@ -77,8 +88,14 @@ dnsport =[]
 icmpsport =[]
 icmpdport = []
 smtpport =[]
-mac_add =[]
-mac_src =[]
+mac_srcadd =[]
+mac_dstadd =[]
+
+#counters that will be used in future print statements
+tcp_cnt =0
+udp_cnt =0
+icmp_cnt = 0
+dns_cnt = 0
 
 #This for loop will be utilized through out this section of code, although the variable names will be slightly different the idea is the same for each step. The first one here will itterate through each individual packet in the packets variable and pull out source IP addreses that get input into a list
 for pkt in packets:
@@ -90,13 +107,12 @@ for pkt in packets:
         #if it can't find a source ip to append to the list it will exit the for loop and move on to the rest of the code
         except:
             pass
-# using the counter module from the collections module we will have a for loop itterate through our list and count each individual IP addresses number of occurances and store that data as a dictionary under the variable "cnt" 
+# using the counter module from the collections library we will have a for loop itterate through our list and count each individual IP addresses number of occurances and store that data as a dictionary under the variable "cnt" 
 cnt = Counter()
 for ip in srcIP:
     cnt[ip] += 1
 
 # We will then use the PrettyTable library to output the data above into a table saved to a variable that can be printed out based on user input 
-
 # sets the table to a variable and labels the columns
 table1= PrettyTable(["SRC.IP", "Count"])
 #For loop to iterrate through the dictionary and pull the ip address and it's count from it
@@ -108,6 +124,7 @@ for ip, count in cnt.most_common():
 # this code block does the same as above but instead it will search through packets looking for TCP protocal information and storing the port numbers used and the number of occurences 
 for pkt in packets:
     if TCP in pkt:
+        tcp_cnt +=1
         try:
             tcpsrc.append(pkt[TCP].sport)
         except:
@@ -157,6 +174,7 @@ for port, count in cnt4.most_common():
 #This code block is used to find and table source UDP ports and their counts
 for pkt in packets:
     if UDP in pkt:
+        udp_cnt +=1
         try:
             udpsrc.append(pkt[UDP].sport)
         except:
@@ -185,8 +203,10 @@ table6 = PrettyTable(["UDP DST PORT", "Count"])
 for port, count in cnt6.most_common():
     table6.add_row([port, count])
 
+# This code block is used to find and table DNS traffic
 for pkt in packets:
     if DNSQR in pkt:
+        dns_cnt +=1
         try:
             dnsport.append(pkt[DNSQR].qname)
         except:
@@ -198,9 +218,11 @@ for dns in dnsport:
 table7 = PrettyTable(["DNS TRAFFIC", "Count"])
 for dns, count in cnt7.most_common():
     table7.add_row([dns, count])
-#print(table7)
+
+#This code block is used to find and table ICMP source port traffic
 for pkt in packets:
     if ICMP in pkt:
+        icmp_cnt +=1
         try: 
             icmpsport.append(pkt[ICMP].sport)
         except:
@@ -212,7 +234,8 @@ for port in icmpsport:
 table8 = PrettyTable(["ICMP SRC PORT", "Count"])
 for port, count in cnt8.most_common():
     table8.add_row([port, count])
-#print(table8)
+
+#This code block is used to find and table ICMp destination port traffic
 for pkt in packets:
     if ICMP in pkt:
         try: 
@@ -226,13 +249,60 @@ for port in icmpdport:
 table9 = PrettyTable(["ICMP DST PORT", "Count"])
 for port, count in cnt9.most_common():
     table9.add_row([port, count])
-#print(table9)
+"""
+#This code block finds and tables information related to SMTP
+for pkt it packets:
+    if SMTP in pkt:d
+"""
+#This code block is used to find and table source Mac addresses and the number of packets containing them.
+for pkt in packets:
+    if Ether in pkt:
+        mac_srcadd.append(pkt[Ether].src)
+    else: 
+        pass
+cnt10 = Counter()
+for mac in mac_srcadd:
+    cnt10[mac] +=1
+table10 = PrettyTable(["SRC MAC ADDRESS", "Count"])
+for mac, count in cnt10.most_common():
+    table10.add_row([mac, count])
 
+#This code block is sued to find and table Destination Mac addresses and the number of packets containing them.
+for pkt in packets:
+    if Ether in pkt:
+        mac_dstadd.append(pkt[Ether].src)
+cnt11 = Counter()
+for mac in mac_dstadd:
+    cnt11[mac] +=1
+table11 = PrettyTable(["DST MAC ADDRESS", "Count"])
+for mac, count in cnt11.most_common():
+    table11.add_row([mac, count])
+
+#additional print statements for the -pcap argument to display information from the tables)
+if args.pcap:
+    print("JAM Parser was able to locate", len(cnt10), "source MAC addresses and", len(cnt11),"destination MAC addresses")
+    print("JAM Parser was able to locate", len(cnt), "source IP addresses and", len(cnt3), "destination IP addresses")
+    print("JAM Parser estimates that", tcp_cnt, "packets contain TCP traffic across", len(cnt2),"source ports and", len(cnt4), "destination ports")
+    print("JAM Parser estimates that", udp_cnt, "packets contain UDP traffic across", len(cnt5),"source ports and", len(cnt6),"destination ports")
+    print("JAM Parser estimates that", icmp_cnt,"packets contain ICMP traffic across", len(cnt8),"source ports and", len(cnt9),"destination ports")
+    print("JAM Parser estimates that", dns_cnt,"packets contain DNS traffic and", len(cnt7),"servers were queried")
 
 # The following section of code will check the flags the user input and then print the corresponding tables if the lists associated with that table have any information in them.
 
+if args.MAC:
+    print(pyfiglet.figlet_format("MAC ADRESSES"))
+    if mac_srcadd:
+        print(table10)
+    else:
+        pass
+    if mac_dstadd:
+        print(table11)
+    else:
+        pass
+
 #if check to see if the -IP flag was input by the user and if it was we proceed to the next if check
 if args.IP:
+    print(pyfiglet.figlet_format("IP ADRESSES"))
     #here we check to make sure that the list associated with the table contains data and if it does we print the table
     if srcIP:
         print(table1)
@@ -246,6 +316,7 @@ if args.IP:
         pass
 # code block to print TCP traffic    
 if args.TCP:
+    print(pyfiglet.figlet_format("TCP PORTS"))
     if tcpsrc:
         print(table2)
     else:
@@ -256,6 +327,7 @@ if args.TCP:
         pass
 # Code block to print UDP traffic    
 if args.UDP:
+    print(pyfiglet.figlet_format("UDP PORTS"))
     if udpsrc:
         print(table5)
     else:
@@ -266,6 +338,7 @@ if args.UDP:
         pass
 # code block to print ICMP traffic
 if args.ICMP:
+    print(pyfiglet.figlet_format("ICMP PORTS"))
     if icmpsport:
         print(table8)
     else:
@@ -276,36 +349,10 @@ if args.ICMP:
         pass
 # Code block to print DNS traffic    
 if args.DNS:
+    print(pyfiglet.figlet_format("DNS TRAFFIC"))
     if dnsport:
         print(table7)
     else: 
         pass
+    
 
-# the following lines of code are a work in progress 
-
-'''
-columns = ["IP.src", "Count"]
-Master_table = PrettyTable()
-for ip, count in cnt.most_common():
-    Master_table.add_column(columns[0], [ip])
-for ip, count in cnt.most_common():
-    Master_table.add_column(columns[1],  [count])
-print(Master_table)
-'''
-
-'''
-print(cnt.most_common)
-for ip, count in cnt.most_common():
-    print(ip)
-for ip, count in cnt.most_common():
-    print(count)
-''' 
-'''
-print(cnt)
-ip_dst_table = PrettyTable()
-for c in string.ascii_uppercase:
-    ip_dst_table.add_column(c, [])
-for dct in cnt.most_common:
-    ip_dst_table.add_row([dct.get(c, "") for c in string.ascii_uppercase])
-print(ip_dst_table)
-'''   
