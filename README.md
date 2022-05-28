@@ -6,6 +6,7 @@ And we present to you the JAM_Parser...(presentation to come)
 The JAM_Parser will automatically parse through pcap and pcapng files and output relavent five tuple data. It will also sort and table that data based on user input argument flags.
 
 **It should be noted that in it's current version the JAM_Parser REQUIRES that the last argument
+
 Example Usage:
 
               ./JAM_Parser.py [-h] [-pcap] [-all] [-MAC] [-IP] [-TCP] [-UDP] [-ICMP] [-DNS] <file_name>
