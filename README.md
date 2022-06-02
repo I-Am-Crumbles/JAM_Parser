@@ -32,4 +32,10 @@ Flags:
       [-DNS]: Displays tables containg DNS traffic and the number of packets each query shows up in.
      
      
- 
+ How to use JAM_Parser.py:
+  
+  Copy the JAM_Parser.py code and execute the command line "sudo nano JAM_Parser.py" 
+
+  Paste the JAM_Parser code in the editor as is. 
+  
+  Last create a shortcut to run the JAM_Parser.py from any directory through this command line "sudo ln -s "$(pwd)"/JAM_parser.py /usr/bin/JAMMING"
